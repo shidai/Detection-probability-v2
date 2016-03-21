@@ -162,6 +162,7 @@ int main (int argc, char* argv[])
 						flux0 = control.cFlux;
 					}
 					nMax++;
+					printf ("%lf %f %d\n", control.cFlux, acfStructure.probability, nMax);
 				}
 				
 				printf ("%lf %lf %lf %f %d\n", tdiff, fdiff, control.cFlux, acfStructure.probability, nMax);
