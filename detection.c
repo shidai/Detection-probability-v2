@@ -171,15 +171,18 @@ int main (int argc, char* argv[])
 				
 				printf ("%lf %lf %lf %f %d\n", tdiff, fdiff, control.cFlux, acfStructure.probability, nMax);
 				//fprintf (fin, "%lf %lf %lf %f\n", tdiff, fdiff, control.cFlux, acfStructure.probability);
+		
+				deallocateMemory (&acfStructure);
 			}
 		}
 
 		fflush (stdout);
 		MPI_Finalize ();
 
+		deallocateNoiseMemory (&acfStructure, &noiseStructure);
+
 		printf ("Threshold: %f \n", noiseStructure.detection);
 		// deallocate memory
-		deallocateMemory (&acfStructure, &noiseStructure);
 	}
 	//else
 	//{
