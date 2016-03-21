@@ -91,7 +91,7 @@ void allocateMemory (acfStruct *acfStructure);
 int simDynSpec (acfStruct *acfStructure, long seed);
 int winDynSpec (acfStruct *acfStructure, long seed, int nDynSpec);
 int calculateScintScale (acfStruct *acfStructure, controlStruct *control);
-//int calculateScintScale (acfStruct *acfStructure, controlStruct *control, long seed);
+int calculateNDynSpec (acfStruct *acfStructure, controlStruct *control);
 void preAllocateMemory (acfStruct *acfStructure);
 //void preAllocateMemory (acfStruct *acfStructure, controlStruct *control);
 float find_peak_value (int n, float *s);
@@ -215,17 +215,35 @@ int calThreshold (noiseStruct *noiseStructure)
 	return 0;
 }
 
+int calculateNDynSpec (acfStruct *acfStructure, controlStruct *control)
+{
+	long seed;
+	int i;
+	
+	acfStructure->cFlux = control->cFlux; // mJy
+
+	for (i=0; i<acfStructure->n; i++)
+	{
+		seed = TKsetSeed();
+		//acfStructure->phaseGradient = TKgaussDev(&seed);
+		//printf ("Phase gradient: %lf\n", acfStructure->phaseGradient);
+
+		winDynSpec (acfStructure, seed, i);
+		//printf ("Make DynSpec %d\n", i);
+	}
+
+	return 0;
+}
+
 int calculateScintScale (acfStruct *acfStructure, controlStruct *control)
 //int calculateScintScale (acfStruct *acfStructure, controlStruct *control, long seed)
 {
 	//FILE *fin;
 	long seed;
-	int i;
 
 	//printf ("Starting simulating dynamic spectrum\n");
 	// moved to preAllocateMemory
 	acfStructure->n = control->n; 
-	acfStructure->cFlux = control->cFlux; // mJy
 	acfStructure->whiteLevel = control->whiteLevel; // mJy
 	acfStructure->cFreq = control->cFreq; // MHz
 	acfStructure->bw = fabs(control->chanBW*control->nchan); // MHz
@@ -246,17 +264,19 @@ int calculateScintScale (acfStruct *acfStructure, controlStruct *control)
 	power (acfStructure);
 		
 	seed = TKsetSeed();
+		
+	acfStructure->phaseGradient = 0.0;
 	simDynSpec (acfStructure, seed);
-	//# pragma omp parallel for private(i)
-	for (i=0; i<acfStructure->n; i++)
-	{
-		seed = TKsetSeed();
-		//acfStructure->phaseGradient = TKgaussDev(&seed);
-		acfStructure->phaseGradient = 0.0;
-		//printf ("Phase gradient: %lf\n", acfStructure->phaseGradient);
 
-		winDynSpec (acfStructure, seed, i);
-	}
+	//for (i=0; i<acfStructure->n; i++)
+	//{
+	//	seed = TKsetSeed();
+	//	//acfStructure->phaseGradient = TKgaussDev(&seed);
+	//	acfStructure->phaseGradient = 0.0;
+	//	//printf ("Phase gradient: %lf\n", acfStructure->phaseGradient);
+
+	//	winDynSpec (acfStructure, seed, i);
+	//}
 
 	/*
 	if (acfStructure->n == 1)
@@ -626,6 +646,7 @@ int simDynSpec (acfStruct *acfStructure, long seed)
 		for (j = 0; j < ns; j++)
 		{
 			acfStructure->dynSpec[i][j] = acfStructure->dynSpec[i][j]/sum;
+			//printf ("%d %d\n", i, j);
 		}
 	}
 

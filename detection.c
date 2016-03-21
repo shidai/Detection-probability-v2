@@ -136,6 +136,9 @@ int main (int argc, char* argv[])
 				control.scint_freqbw = fdiff;
 
 				acfStructure.probability = 1.0;
+					
+				calculateScintScale (&acfStructure, &control);
+				//printf ("calculateScintScal\n");
 
 				nMax = 0;
 				while (fabs(acfStructure.probability-0.8)>=0.01 && nMax <= 100)
@@ -144,7 +147,7 @@ int main (int argc, char* argv[])
 					//printf ("%lf %lf %.8lf %.3f\n", tdiff, fdiff, control.cFlux, acfStructure.probability);
 		
 					// simulate dynamic spectra
-					calculateScintScale (&acfStructure, &control);
+					calculateNDynSpec (&acfStructure, &control);
 
 					//if (control.noplot==0 && n == 1)
 					//{
