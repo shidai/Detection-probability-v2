@@ -112,6 +112,7 @@ int main (int argc, char* argv[])
 		//allocateMemory (&acfStructure);
 
 		calNoise (&noiseStructure, &control);
+		printf ("%lf\n", noiseStructure.detection);
 
 		//num = (int)((control.scint_ts1-control.scint_ts0)/control.scint_ts_step);
 		//for (tdiff=control.scint_ts0; tdiff<control.scint_ts1; tdiff+=control.scint_ts_step)
@@ -162,7 +163,7 @@ int main (int argc, char* argv[])
 						flux0 = control.cFlux;
 					}
 					nMax++;
-					printf ("%lf %f %d\n", control.cFlux, acfStructure.probability, nMax);
+					//printf ("%lf %f %d\n", control.cFlux, acfStructure.probability, nMax);
 				}
 				
 				printf ("%lf %lf %lf %f %d\n", tdiff, fdiff, control.cFlux, acfStructure.probability, nMax);

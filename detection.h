@@ -250,6 +250,7 @@ int calculateScintScale (acfStruct *acfStructure, controlStruct *control)
 	//# pragma omp parallel for private(i)
 	for (i=0; i<acfStructure->n; i++)
 	{
+		seed = TKsetSeed();
 		//acfStructure->phaseGradient = TKgaussDev(&seed);
 		acfStructure->phaseGradient = 0.0;
 		//printf ("Phase gradient: %lf\n", acfStructure->phaseGradient);
@@ -1406,7 +1407,7 @@ int qualifyVar (acfStruct *acfStructure, noiseStruct *noiseStructure, controlStr
 	{
 		m[i] = moduIndex (acfStructure->dynPlot[i], nsub*nchan);
 		var[i] = variance (acfStructure->dynPlot[i], nsub*nchan);
-		//fprintf (fin1, "%f\n", var[i]);
+		//printf ("%f\n", var[i]);
 		//printf ("%f \n", m[i]);
 	}
 
@@ -1419,6 +1420,7 @@ int qualifyVar (acfStruct *acfStructure, noiseStruct *noiseStructure, controlStr
 		}
 	}
 	acfStructure->probability = (float)(num)/n;
+	//printf ("%d %d %f %f\n", num, n, (float)(num)/n, acfStructure->probability);
 
 	for (i=0; i<n_n; i++)
 	{
