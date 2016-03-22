@@ -815,8 +815,10 @@ int windowSize (acfStruct *acfStructure, double *size)
 		//printf ("s0 ratio: %lf\n", ratio[1]);
 	}
 
-	acfStructure->size[0] = size[0];
-	acfStructure->size[1] = size[1];
+	acfStructure->size[0] = 5.0*size[0];
+	acfStructure->size[1] = 5.0*size[1];
+	//acfStructure->size[0] = size[0];
+	//acfStructure->size[1] = size[1];
 
 	return 0;
 }
@@ -968,8 +970,10 @@ void preAllocateMemory (acfStruct *acfStructure)
 	//printf ("f0 size: %lf\n", size[0]);
 	//printf ("s0 size: %lf\n", size[1]);
 
-	nf = (int)(size[0]*2/stepf)+1;
-	ns = (int)(size[1]*2/steps)+1;
+	nf = (int)(acfStructure->size[0]*2/stepf)+1;
+	ns = (int)(acfStructure->size[1]*2/steps)+1;
+	//nf = (int)(size[0]*2/stepf)+1;
+	//ns = (int)(size[1]*2/steps)+1;
 	//printf ("ns: %d\n", ns);
 	//printf ("nf: %d\n", nf);
 
