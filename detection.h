@@ -50,7 +50,7 @@ typedef struct noiseStruct {
 	int nchn;
 	int nsubint;
 
-	float **noisePlot; // dynamic spectrum for pgplot
+	float *noisePlot; // dynamic spectrum for pgplot
 	double whiteLevel;  // white noise level
 	double detection; // detection threshold
 } noiseStruct;
@@ -117,8 +117,8 @@ float find_max_value (int n, float *s);
 float find_min_value (int n, float *s);
 
 int calNoise (noiseStruct *noiseStructure, controlStruct *control);
-int simNoise (noiseStruct *noiseStructure, long seed, int nDynSpec);
-int calThreshold (noiseStruct *noiseStructure);
+int simNoise (noiseStruct *noiseStructure, long seed);
+int calThreshold (noiseStruct *noiseStructure, float *var_n);
 
 void readDiss (char *Tname, char *Fname, double *tdiss, double *fdiss);
 int readDissNum (char *Tname);
@@ -130,6 +130,9 @@ int calNoise (noiseStruct *noiseStructure, controlStruct *control)
 	int i;
 	int n = 10*control->n;
 
+	float *var_n;
+	var_n = (float*)malloc(sizeof(float)*n);
+
 	noiseStructure->n = 10*control->n; 
 	noiseStructure->whiteLevel = control->whiteLevel; // mJy
 	noiseStructure->nchn = control->nchan; 
@@ -139,64 +142,35 @@ int calNoise (noiseStruct *noiseStructure, controlStruct *control)
 	nsubint = noiseStructure->nsubint;
 
 	// allocate memory
-	noiseStructure->noisePlot = (float **)malloc(sizeof(float *)*n);
-
-	for (i = 0; i < n; i++)
-	{
-		noiseStructure->noisePlot[i] = (float *)malloc(sizeof(float)*nsubint*nchn);
-	}
+	noiseStructure->noisePlot = (float *)malloc(sizeof(float)*nsubint*nchn);
 
 	// simulate noise
 	for (i=0; i<noiseStructure->n; i++)
 	{
 		seed = TKsetSeed();
-		simNoise (noiseStructure, seed, i);
+		simNoise (noiseStructure, seed);
+
+		var_n[i] = variance (noiseStructure->noisePlot, nsubint*nchn);
 	}
 
-	calThreshold (noiseStructure);
+	calThreshold (noiseStructure, var_n);
 
 	// deallocate memory
-	for (i = 0; i < n; i++)
-	{
-		free(noiseStructure->noisePlot[i]);
-	}
+	free(noiseStructure->noisePlot);
+	free(var_n);
 
 	return 0;
 }
 
-int calThreshold (noiseStruct *noiseStructure)
+int calThreshold (noiseStruct *noiseStructure, float *var_n)
 {
 	int i;
 	int n = noiseStructure->n;
 
-	float *var_n;
-	//float varVar_n, meanVarN;
-
-	int nsub = noiseStructure->nsubint;
-	int nchan = noiseStructure->nchn;
-	
 	float max;
 	float percent;
 	float threshold;
 	int num;
-
-	var_n = (float*)malloc(sizeof(float)*n);
-
-	for (i=0; i<n; i++)
-	{
-		var_n[i] = variance (noiseStructure->noisePlot[i], nsub*nchan);
-	}
-
-	/*
-	meanVarN = 0.0;
-	for (i=0; i<n; i++)
-	{
-		meanVarN += var_n[i];
-	}
-	meanVarN = meanVarN/n;
-
-	varVar_n = variance (var_n, n);
-	*/
 
 	max = find_max_value (n, var_n);
 	//printf ("Results: %f %f %f %f\n", meanVar, varVar, meanVarN, varVar_n);
@@ -218,8 +192,6 @@ int calThreshold (noiseStruct *noiseStructure)
 	}
 
 	noiseStructure->detection = threshold;
-
-	free(var_n);
 
 	return 0;
 }
@@ -591,7 +563,7 @@ void deallocateMemory (acfStruct *acfStructure)
 	free(acfStructure->dynPlot);
 }
 
-int simNoise (noiseStruct *noiseStructure, long seed, int nDynSpec)
+int simNoise (noiseStruct *noiseStructure, long seed)
 {
 	int nchn = noiseStructure->nchn;
 	int nsubint = noiseStructure->nsubint;
@@ -602,7 +574,7 @@ int simNoise (noiseStruct *noiseStructure, long seed, int nDynSpec)
 	{
 		for (j = 0; j < nsubint; j++)
 		{
-			noiseStructure->noisePlot[nDynSpec][i*nsubint+j] = (float)(noiseStructure->whiteLevel*TKgaussDev(&seed));   // create noise image pixels
+			noiseStructure->noisePlot[i*nsubint+j] = (float)(noiseStructure->whiteLevel*TKgaussDev(&seed));   // create noise image pixels
 		}
 	}
 
