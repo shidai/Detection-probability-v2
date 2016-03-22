@@ -815,10 +815,8 @@ int windowSize (acfStruct *acfStructure, double *size)
 		//printf ("s0 ratio: %lf\n", ratio[1]);
 	}
 
-	acfStructure->size[0] = 5.0*size[0];
-	acfStructure->size[1] = 5.0*size[1];
-	//acfStructure->size[0] = size[0];
-	//acfStructure->size[1] = size[1];
+	acfStructure->size[0] = size[0];
+	acfStructure->size[1] = size[1];
 
 	return 0;
 }
