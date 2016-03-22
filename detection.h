@@ -675,7 +675,8 @@ int winDynSpec (acfStruct *acfStructure, long seed, int nDynSpec)
 	int tempt = (int)((tint/nsubint)/t0);  // number of pixels to average
 	int tempf = (int)((bw/nchn)/f0); // number of pixels to average
 
-	double rand, rand2;
+	double rand1, rand2;
+	double rand11, rand22;
 	int nf0;
 	int ns0;
 
@@ -683,15 +684,17 @@ int winDynSpec (acfStruct *acfStructure, long seed, int nDynSpec)
 	//seed = TKsetSeed();
 	//printf ("seed %ld\n",seed);
 
-	rand = TKgaussDev(&seed);
-	rand2 = rand - floor(rand);
+	rand1 = TKgaussDev(&seed);
+	rand2 = TKgaussDev(&seed);
+	rand11 = rand1 - floor(rand1);
+	rand22 = rand2 - floor(rand2);
 	//printf ("rand %lf\n",rand);
 
 	if (f0 >= (bw/nchn) && t0 >= (tint/nsubint))
 	{
 		//printf ("f0 >= (bw/nchn) && t0 >= (tint/nsubint)\n");
-		nf0 = (int)(rand2*(nf-nchn));
-		ns0 = (int)(rand2*(ns-nsubint));
+		nf0 = (int)(rand11*(nf-nchn));
+		ns0 = (int)(rand22*(ns-nsubint));
 	
 		for (i = 0; i < nchn; i++)
 		{
@@ -708,8 +711,8 @@ int winDynSpec (acfStruct *acfStructure, long seed, int nDynSpec)
 	else if (f0 >= (bw/nchn) && t0 < (tint/nsubint))
 	{
 		//printf ("f0 >= (bw/nchn) && t0 < (tint/nsubint)\n");
-		nf0 = (int)(rand2*(nf-nchn));
-		ns0 = (int)(rand2*(ns-(int)(tint/t0)));
+		nf0 = (int)(rand11*(nf-nchn));
+		ns0 = (int)(rand22*(ns-(int)(tint/t0)));
 
 		for (i = 0; i < nchn; i++)
 		{
@@ -728,8 +731,8 @@ int winDynSpec (acfStruct *acfStructure, long seed, int nDynSpec)
 	else if (f0 < (bw/nchn) && t0 >= (tint/nsubint))
 	{
 		//printf ("f0 < (bw/nchn) && t0 >= (tint/nsubint)\n");
-		nf0 = (int)(rand2*(nf-(int)(bw/f0)));
-		ns0 = (int)(rand2*(ns-nsubint));
+		nf0 = (int)(rand11*(nf-(int)(bw/f0)));
+		ns0 = (int)(rand22*(ns-nsubint));
 
 		for (i = 0; i < nchn; i++)
 		{
@@ -748,8 +751,8 @@ int winDynSpec (acfStruct *acfStructure, long seed, int nDynSpec)
 	else
 	{
 		//printf ("f0 < (bw/nchn) && t0 < (tint/nsubint)\n");
-		nf0 = (int)(rand2*(nf-(int)(bw/f0)));
-		ns0 = (int)(rand2*(ns-(int)(tint/t0)));
+		nf0 = (int)(rand11*(nf-(int)(bw/f0)));
+		ns0 = (int)(rand22*(ns-(int)(tint/t0)));
 
 		for (i = 0; i < nchn; i++)
 		{
@@ -812,8 +815,8 @@ int windowSize (acfStruct *acfStructure, double *size)
 		//printf ("s0 ratio: %lf\n", ratio[1]);
 	}
 
-	acfStructure->size[0] = 10.0*size[0];
-	acfStructure->size[1] = 10.0*size[1];
+	acfStructure->size[0] = 5.0*size[0];
+	acfStructure->size[1] = 5.0*size[1];
 	//acfStructure->size[0] = size[0];
 	//acfStructure->size[1] = size[1];
 
