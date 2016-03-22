@@ -147,7 +147,7 @@ int main (int argc, char* argv[])
 					//printf ("%lf %lf %.8lf %.3f\n", tdiff, fdiff, control.cFlux, acfStructure.probability);
 		
 					// simulate dynamic spectra
-					calculateNDynSpec (&acfStructure, &control);
+					calculateNDynSpec (&acfStructure, &control, &noiseStructure);
 
 					//if (control.noplot==0 && n == 1)
 					//{
@@ -155,7 +155,8 @@ int main (int argc, char* argv[])
 					//	heatMap (&acfStructure, dname);
 					//}
 
-					qualifyVar (&acfStructure, &noiseStructure, &control);
+					// merged into calculateNDynSpec
+					//qualifyVar (&acfStructure, &noiseStructure, &control);
 
 					if (acfStructure.probability>0.8)
 					{

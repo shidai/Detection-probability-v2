@@ -39,7 +39,8 @@ typedef struct acfStruct {
 	fftw_complex *intensity;  // intensity 
 	double **dynSpec; // dynamic spectrum 
 	double **dynSpecWindow; // dynamic spectrum window, nchn*nsubint dimension
-	float **dynPlot; // dynamic spectrum for pgplot
+
+	float *dynPlot; // dynamic spectrum for pgplot
 
 	float probability;
 } acfStruct;
@@ -92,9 +93,9 @@ void deallocateMemory (acfStruct *acfStructure);
 void deallocateNoiseMemory (acfStruct *acfStructure, noiseStruct *noiseStructure);
 void allocateMemory (acfStruct *acfStructure);
 int simDynSpec (acfStruct *acfStructure, long seed);
-int winDynSpec (acfStruct *acfStructure, long seed, int nDynSpec);
+int winDynSpec (acfStruct *acfStructure, long seed);
 int calculateScintScale (acfStruct *acfStructure, controlStruct *control);
-int calculateNDynSpec (acfStruct *acfStructure, controlStruct *control);
+int calculateNDynSpec (acfStruct *acfStructure, controlStruct *control, noiseStruct *noiseStructure);
 void preAllocateMemory (acfStruct *acfStructure);
 //void preAllocateMemory (acfStruct *acfStructure, controlStruct *control);
 float find_peak_value (int n, float *s);
@@ -108,7 +109,7 @@ void initialiseControl(controlStruct *control);
 //void palett(int TYPE, float CONTRA, float BRIGHT);
 //int plotDynSpec (char *pname, char *dname);
 
-int qualifyVar (acfStruct *acfStructure, noiseStruct *noiseStructure, controlStruct *control);
+//int qualifyVar (acfStruct *acfStructure, noiseStruct *noiseStructure, controlStruct *control);
 float chiSquare (float *data, int n, float noise);
 float moduIndex (float *data, int n);
 float variance (float *data, int n);
@@ -154,6 +155,12 @@ int calNoise (noiseStruct *noiseStructure, controlStruct *control)
 	}
 
 	calThreshold (noiseStructure);
+
+	// deallocate memory
+	for (i = 0; i < n; i++)
+	{
+		free(noiseStructure->noisePlot[i]);
+	}
 
 	return 0;
 }
@@ -218,22 +225,44 @@ int calThreshold (noiseStruct *noiseStructure)
 	return 0;
 }
 
-int calculateNDynSpec (acfStruct *acfStructure, controlStruct *control)
+int calculateNDynSpec (acfStruct *acfStructure, controlStruct *control, noiseStruct *noiseStructure)
 {
 	long seed;
 	int i;
+
+	int n = acfStructure->n;
+	int nsub = control->nsub;
+	int nchan = control->nchan;
+
+	int num;
 	
+	float *var;
+	var = (float*)malloc(sizeof(float)*n);
+
 	acfStructure->cFlux = control->cFlux; // mJy
 
+	num = 0;
 	for (i=0; i<acfStructure->n; i++)
 	{
 		seed = TKsetSeed();
 		//acfStructure->phaseGradient = TKgaussDev(&seed);
 		//printf ("Phase gradient: %lf\n", acfStructure->phaseGradient);
 
-		winDynSpec (acfStructure, seed, i);
+		winDynSpec (acfStructure, seed);
 		//printf ("Make DynSpec %d\n", i);
+		
+		// calculate the variance
+		var[i] = variance (acfStructure->dynPlot, nsub*nchan);
+
+		if (var[i] >= noiseStructure->detection)
+		{
+			num++;
+		}
 	}
+
+	acfStructure->probability = (float)(num)/n;
+
+	free(var);
 
 	return 0;
 }
@@ -511,8 +540,7 @@ void allocateMemory (acfStruct *acfStructure)
 	acfStructure->dynSpec = (double **)fftw_malloc(sizeof(double *)*nf);
 	acfStructure->dynSpecWindow = (double **)fftw_malloc(sizeof(double *)*nchn);
 
-	//acfStructure->dynPlot = (float *)malloc(sizeof(float)*nsubint*nchn);
-	acfStructure->dynPlot = (float **)malloc(sizeof(float *)*n);
+	acfStructure->dynPlot = (float *)malloc(sizeof(float)*nsubint*nchn);
 
 	int i;
 	for (i = 0; i < nf; i++)
@@ -523,11 +551,6 @@ void allocateMemory (acfStruct *acfStructure)
 	for (i = 0; i < nchn; i++)
 	{
 		acfStructure->dynSpecWindow[i] = (double *)fftw_malloc(sizeof(double)*nsubint);
-	}
-
-	for (i = 0; i < n; i++)
-	{
-		acfStructure->dynPlot[i] = (float *)malloc(sizeof(float)*nsubint*nchn);
 	}
 
 	for (i = 0; i < ns; i++)
@@ -544,7 +567,7 @@ void allocateMemory (acfStruct *acfStructure)
 
 void deallocateMemory (acfStruct *acfStructure)
 {
-	int n = acfStructure->n; // number of dynamic spectrum
+	//int n = acfStructure->n; // number of dynamic spectrum
 	int nf = acfStructure->nf;
 	int nchn = acfStructure->nchn;
 	
@@ -566,11 +589,7 @@ void deallocateMemory (acfStruct *acfStructure)
 		free(acfStructure->dynSpecWindow[i]);
 	}
 
-	for (i = 0; i < n; i++)
-	{
-		free(acfStructure->dynPlot[i]);
-	}
-	//free(acfStructure->dynPlot);
+	free(acfStructure->dynPlot);
 }
 
 void deallocateNoiseMemory (acfStruct *acfStructure, noiseStruct *noiseStructure)
@@ -660,7 +679,7 @@ int simDynSpec (acfStruct *acfStructure, long seed)
 	return 0;
 }
 
-int winDynSpec (acfStruct *acfStructure, long seed, int nDynSpec)
+int winDynSpec (acfStruct *acfStructure, long seed)
 {
 	int nf = acfStructure->nf;
 	int ns = acfStructure->ns;
@@ -703,7 +722,7 @@ int winDynSpec (acfStruct *acfStructure, long seed, int nDynSpec)
 			for (j = 0; j < nsubint; j++)
 			{
 				acfStructure->dynSpecWindow[i][j] = acfStructure->dynSpec[i+nf0][j+ns0];
-				acfStructure->dynPlot[nDynSpec][i*nsubint+j] = (float)(acfStructure->dynSpecWindow[i][j]*acfStructure->cFlux+acfStructure->whiteLevel*TKgaussDev(&seed));   // add in noise here
+				acfStructure->dynPlot[i*nsubint+j] = (float)(acfStructure->dynSpecWindow[i][j]*acfStructure->cFlux+acfStructure->whiteLevel*TKgaussDev(&seed));   // add in noise here
 				//printf ("noise rand %lf\n",TKgaussDev(&seed));
 				//acfStructure->dynPlot[i*nsubint+j] = (float)(acfStructure->dynSpecWindow[i][j]);
 				//fprintf (fp, "%.10lf  ", acfStructure->dynSpec[i][j]/sum);
@@ -726,7 +745,7 @@ int winDynSpec (acfStruct *acfStructure, long seed, int nDynSpec)
 					temp += acfStructure->dynSpec[i+nf0][j*tempt+ns0+jj];
 				}
 				acfStructure->dynSpecWindow[i][j] = temp/tempt;
-				acfStructure->dynPlot[nDynSpec][i*nsubint+j] = (float)(acfStructure->dynSpecWindow[i][j]*acfStructure->cFlux+acfStructure->whiteLevel*TKgaussDev(&seed));   // add in noise here
+				acfStructure->dynPlot[i*nsubint+j] = (float)(acfStructure->dynSpecWindow[i][j]*acfStructure->cFlux+acfStructure->whiteLevel*TKgaussDev(&seed));   // add in noise here
 			}
 		}
 	}
@@ -746,7 +765,7 @@ int winDynSpec (acfStruct *acfStructure, long seed, int nDynSpec)
 						temp += acfStructure->dynSpec[i*tempf+nf0+ii][j+ns0];
 				}
 				acfStructure->dynSpecWindow[i][j] = temp/tempf;
-				acfStructure->dynPlot[nDynSpec][i*nsubint+j] = (float)(acfStructure->dynSpecWindow[i][j]*acfStructure->cFlux+acfStructure->whiteLevel*TKgaussDev(&seed));   // add in noise here
+				acfStructure->dynPlot[i*nsubint+j] = (float)(acfStructure->dynSpecWindow[i][j]*acfStructure->cFlux+acfStructure->whiteLevel*TKgaussDev(&seed));   // add in noise here
 			}
 		}
 	}
@@ -769,7 +788,7 @@ int winDynSpec (acfStruct *acfStructure, long seed, int nDynSpec)
 					}
 				}
 				acfStructure->dynSpecWindow[i][j] = temp/(tempf*tempt);
-				acfStructure->dynPlot[nDynSpec][i*nsubint+j] = (float)(acfStructure->dynSpecWindow[i][j]*acfStructure->cFlux+acfStructure->whiteLevel*TKgaussDev(&seed));   // add in noise here
+				acfStructure->dynPlot[i*nsubint+j] = (float)(acfStructure->dynSpecWindow[i][j]*acfStructure->cFlux+acfStructure->whiteLevel*TKgaussDev(&seed));   // add in noise here
 			}
 		}
 	}
@@ -1376,182 +1395,143 @@ void initialiseControl(controlStruct *control)
 //	return 0;
 //} 
 
-int qualifyVar (acfStruct *acfStructure, noiseStruct *noiseStructure, controlStruct *control)
-{
-	int i;
-	int n = acfStructure->n;
-	int n_n = noiseStructure->n;
-	//float sum;
-
-	//float *flux0;    // flux density of each pixel
-	//float *flux; // flux densities
-
-	//float chiS0;
-	//float chiS;
-
-	float m0;
-	float *m;
-
-	float *var, *var_n;
-	float varVar, meanVar;
-	float varVar_n, meanVar_n;
-
-	int nsub = control->nsub;
-	int nchan = control->nchan;
-
-	//int step = 100;
-	//float *xHis, *val;
-	//float *xHisN, *valN;
-	//float max, max1, max2; 
-	//float maxV, maxVN;
-	//float minV, minVN;
-	//char caption[1024];
-
-	//float xThreshold[100];
-	//float yThreshold[100];
-
-	int num;
-
-	/*
-	FILE *fin1, *fin2;
-
-	if ((fin1=fopen("varHis", "w"))==NULL)
-	{
-		printf ("Can't open file...\n");
-		exit(1);
-	}
-
-	if ((fin2=fopen("varNHis", "w"))==NULL)
-	{
-		printf ("Can't open file...\n");
-		exit(1);
-	}
-	*/
-
-	//for (i=0; i<100; i++)
-	//{
-	//	xThreshold[i] = noiseStructure->detection;
-	//	yThreshold[i] = i;
-	//}
-
-	m = (float*)malloc(sizeof(float)*n);
-	var = (float*)malloc(sizeof(float)*n);
-	var_n = (float*)malloc(sizeof(float)*n_n);
-
-	for (i=0; i<n; i++)
-	{
-		m[i] = moduIndex (acfStructure->dynPlot[i], nsub*nchan);
-		var[i] = variance (acfStructure->dynPlot[i], nsub*nchan);
-		//printf ("%f\n", var[i]);
-		//printf ("%f \n", m[i]);
-	}
-
-	num = 0;
-	for (i=0; i<n; i++)
-	{
-		if (var[i] >= noiseStructure->detection)
-		{
-			num++;
-		}
-	}
-	acfStructure->probability = (float)(num)/n;
-	//printf ("%d %d %f %f\n", num, n, (float)(num)/n, acfStructure->probability);
-
-	for (i=0; i<n_n; i++)
-	{
-		var_n[i] = variance (noiseStructure->noisePlot[i], nsub*nchan);
-		//fprintf (fin2, "%f\n", var_n[i]);
-	}
-
-	/*
-	if (fclose(fin1))
-	{
-		printf ("Can't close file...\n");
-		exit(1);
-	}
-
-	if (fclose(fin2))
-	{
-		printf ("Can't close file...\n");
-		exit(1);
-	}
-	*/
-
-	m0 = 0.0;
-	meanVar = 0.0;
-	for (i=0; i<n; i++)
-	{
-		m0 += m[i];
-		meanVar += var[i];
-	}
-	m0 = m0/n;
-	meanVar = meanVar/n;
-
-	meanVar_n = 0.0;
-	for (i=0; i<n_n; i++)
-	{
-		meanVar_n += var_n[i];
-	}
-	meanVar_n = meanVar_n/n_n;
-
-	varVar = variance (var, n);
-	varVar_n = variance (var_n, n_n);
-
-	//printf ("Results: %f %f %f %f %f\n", m0, meanVar, varVar, meanVar_n, varVar_n);
-
-	/*
-	maxV = find_max_value(n,var);
-	minV = find_min_value(n,var);
-	maxVN = find_max_value(n_n,var_n);
-	minVN = find_min_value(n_n,var_n);
-	////////////////////////////
-	// make histogram
-	if (control->noplot != 1)
-	{
-		cpgbeg(0,control->dname,1,1);
-
-		xHis = (float*)malloc(sizeof(float)*step);
-		val = (float*)malloc(sizeof(float)*step);
-		xHisN = (float*)malloc(sizeof(float)*step);
-		valN = (float*)malloc(sizeof(float)*step);
-		histogram (var, n, xHis, val, minV-2*(maxV-minV)/step, maxV+2*(maxV-minV)/step, step);
-		histogram (var_n, n_n, xHisN, valN, minVN-2*(maxVN-minVN)/step, maxVN+2*(maxVN-minVN)/step, step);
-
-      		cpgsch(1); // set character height
-      		cpgscf(1); // set character font
-
-		// find the max and min
-		max1 = find_max_value(step,val);
-		max2 = find_max_value(step,valN);
-		max = (max1 >= max2 ? max1 : max2);
-      		//cpgenv(-5,5,0,4500,0,1); // set window and viewport and draw labeled frame
-      		cpgenv(minVN-1, maxV+1, 0, max+0.1*max, 0, 1); // set window and viewport and draw labeled frame
-
-		sprintf(caption, "%s", "Variance histogram");
-      		cpglab("Variance","Number",caption);
-		cpgbin(step,xHis,val,0);
-		cpgsci(2);
-		cpgbin(step,xHisN,valN,0);
-		cpgsci(3);
-		cpgline(100, xThreshold, yThreshold);
-		///////////////////////////////////////////////////////
-		cpgend();
-
-		free(xHis);
-		free(val);
-		free(xHisN);
-		free(valN);
-	}
-	*/
-
-	free(m);
-	free(var);
-	free(var_n);
-	//free(flux0);
-	//free(flux);
-
-	return 0;
-}
+//int qualifyVar (acfStruct *acfStructure, noiseStruct *noiseStructure, controlStruct *control)
+//{
+//	int i;
+//	int n = acfStructure->n;
+//	int n_n = noiseStructure->n;
+//
+//	float m0;
+//	//float *m;
+//
+//	float *var; 
+//	//float *var_n;
+//	//float varVar, meanVar;
+//	//float varVar_n, meanVar_n;
+//
+//	int nsub = control->nsub;
+//	int nchan = control->nchan;
+//
+//	int num;
+//
+//	//m = (float*)malloc(sizeof(float)*n);
+//	var = (float*)malloc(sizeof(float)*n);
+//	//var_n = (float*)malloc(sizeof(float)*n_n);
+//
+//	for (i=0; i<n; i++)
+//	{
+//		//m[i] = moduIndex (acfStructure->dynPlot[i], nsub*nchan);
+//		var[i] = variance (acfStructure->dynPlot[i], nsub*nchan);
+//		//printf ("%f\n", var[i]);
+//		//printf ("%f \n", m[i]);
+//	}
+//
+//	num = 0;
+//	for (i=0; i<n; i++)
+//	{
+//		if (var[i] >= noiseStructure->detection)
+//		{
+//			num++;
+//		}
+//	}
+//	acfStructure->probability = (float)(num)/n;
+//	//printf ("%d %d %f %f\n", num, n, (float)(num)/n, acfStructure->probability);
+//
+//	//for (i=0; i<n_n; i++)
+//	//{
+//	//	var_n[i] = variance (noiseStructure->noisePlot[i], nsub*nchan);
+//	//	//fprintf (fin2, "%f\n", var_n[i]);
+//	//}
+//
+//	/*
+//	if (fclose(fin1))
+//	{
+//		printf ("Can't close file...\n");
+//		exit(1);
+//	}
+//
+//	if (fclose(fin2))
+//	{
+//		printf ("Can't close file...\n");
+//		exit(1);
+//	}
+//	*/
+//
+//	//m0 = 0.0;
+//	//meanVar = 0.0;
+//	//for (i=0; i<n; i++)
+//	//{
+//	//	m0 += m[i];
+//	//	meanVar += var[i];
+//	//}
+//	//m0 = m0/n;
+//	//meanVar = meanVar/n;
+//
+//	//meanVar_n = 0.0;
+//	//for (i=0; i<n_n; i++)
+//	//{
+//	//	meanVar_n += var_n[i];
+//	//}
+//	//meanVar_n = meanVar_n/n_n;
+//
+//	//varVar = variance (var, n);
+//	//varVar_n = variance (var_n, n_n);
+//
+//	//printf ("Results: %f %f %f %f %f\n", m0, meanVar, varVar, meanVar_n, varVar_n);
+//
+//	/*
+//	maxV = find_max_value(n,var);
+//	minV = find_min_value(n,var);
+//	maxVN = find_max_value(n_n,var_n);
+//	minVN = find_min_value(n_n,var_n);
+//	////////////////////////////
+//	// make histogram
+//	if (control->noplot != 1)
+//	{
+//		cpgbeg(0,control->dname,1,1);
+//
+//		xHis = (float*)malloc(sizeof(float)*step);
+//		val = (float*)malloc(sizeof(float)*step);
+//		xHisN = (float*)malloc(sizeof(float)*step);
+//		valN = (float*)malloc(sizeof(float)*step);
+//		histogram (var, n, xHis, val, minV-2*(maxV-minV)/step, maxV+2*(maxV-minV)/step, step);
+//		histogram (var_n, n_n, xHisN, valN, minVN-2*(maxVN-minVN)/step, maxVN+2*(maxVN-minVN)/step, step);
+//
+//      		cpgsch(1); // set character height
+//      		cpgscf(1); // set character font
+//
+//		// find the max and min
+//		max1 = find_max_value(step,val);
+//		max2 = find_max_value(step,valN);
+//		max = (max1 >= max2 ? max1 : max2);
+//      		//cpgenv(-5,5,0,4500,0,1); // set window and viewport and draw labeled frame
+//      		cpgenv(minVN-1, maxV+1, 0, max+0.1*max, 0, 1); // set window and viewport and draw labeled frame
+//
+//		sprintf(caption, "%s", "Variance histogram");
+//      		cpglab("Variance","Number",caption);
+//		cpgbin(step,xHis,val,0);
+//		cpgsci(2);
+//		cpgbin(step,xHisN,valN,0);
+//		cpgsci(3);
+//		cpgline(100, xThreshold, yThreshold);
+//		///////////////////////////////////////////////////////
+//		cpgend();
+//
+//		free(xHis);
+//		free(val);
+//		free(xHisN);
+//		free(valN);
+//	}
+//	*/
+//
+//	//free(m);
+//	free(var);
+//	//free(var_n);
+//	//free(flux0);
+//	//free(flux);
+//
+//	return 0;
+//}
 
 float chiSquare (float *data, int n, float noise)
 {
