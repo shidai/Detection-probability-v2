@@ -141,7 +141,7 @@ int main (int argc, char* argv[])
 				//printf ("calculateScintScal\n");
 
 				nMax = 0;
-				while (fabs(acfStructure.probability-0.8)>=0.01 && nMax <= 100)
+				while (fabs(acfStructure.probability-0.8)>=PRECISION && nMax <= 100)
 				{
 					control.cFlux = flux0+(flux1-flux0)/2.0;
 					//printf ("%lf %lf %.8lf %.3f\n", tdiff, fdiff, control.cFlux, acfStructure.probability);
