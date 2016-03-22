@@ -90,7 +90,6 @@ int dft2d (acfStruct *acfStructure, fftw_complex *out);
 int calACF (acfStruct *acfStructure);
 int power (acfStruct *acfStructure);
 void deallocateMemory (acfStruct *acfStructure);
-void deallocateNoiseMemory (acfStruct *acfStructure, noiseStruct *noiseStructure);
 void allocateMemory (acfStruct *acfStructure);
 int simDynSpec (acfStruct *acfStructure, long seed);
 int winDynSpec (acfStruct *acfStructure, long seed);
@@ -590,17 +589,6 @@ void deallocateMemory (acfStruct *acfStructure)
 	}
 
 	free(acfStructure->dynPlot);
-}
-
-void deallocateNoiseMemory (acfStruct *acfStructure, noiseStruct *noiseStructure)
-{
-	int i;
-	int n = acfStructure->n; // number of dynamic spectrum
-	// free noise memory
-	for (i = 0; i < n; i++)
-	{
-		free(noiseStructure->noisePlot[i]);
-	}
 }
 
 int simNoise (noiseStruct *noiseStructure, long seed, int nDynSpec)
