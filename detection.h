@@ -8,7 +8,7 @@
 #include "T2toolkit.h"
 //#include "cpgplot.h"
 //#include <omp.h>
-#define WINSIZE 5.0
+#define WINSIZE 2.5
 #define PRECISION 0.005
 
 typedef struct acfStruct {
