@@ -244,6 +244,9 @@ int calculateScintScale (acfStruct *acfStructure, controlStruct *control)
 	//FILE *fin;
 	long seed;
 
+	int i;
+	int nchn, nsubint;
+
 	//printf ("Starting simulating dynamic spectrum\n");
 	// moved to preAllocateMemory
 	acfStructure->n = control->n; 
@@ -255,6 +258,9 @@ int calculateScintScale (acfStruct *acfStructure, controlStruct *control)
 	acfStructure->t0 = control->scint_ts; // s
 	acfStructure->nchn = control->nchan;
 	acfStructure->nsubint = control->nsub;
+
+	nchn = acfStructure->nchn;
+	nsubint = acfStructure->nsubint;
 	//printf ("Scintillation bandwidth: %lf (MHz)\n", acfStructure->f0);
 	//printf ("Scintillation time-scale: %lf (s)\n", acfStructure->t0);
 
@@ -270,6 +276,24 @@ int calculateScintScale (acfStruct *acfStructure, controlStruct *control)
 		
 	acfStructure->phaseGradient = 0.0;
 	simDynSpec (acfStructure, seed);
+
+	// deallocate memory
+	free(acfStructure->s); 
+	free(acfStructure->f); 
+	free(acfStructure->acf2d);
+	free(acfStructure->psrt);
+
+	fftw_free(acfStructure->eField); 
+	fftw_free(acfStructure->intensity); 
+
+	// allocate memory
+	acfStructure->dynSpecWindow = (double **)malloc(sizeof(double *)*nchn);
+	for (i = 0; i < nchn; i++)
+	{
+		acfStructure->dynSpecWindow[i] = (double *)malloc(sizeof(double)*nsubint);
+	}
+
+	acfStructure->dynPlot = (float *)malloc(sizeof(float)*nsubint*nchn);
 
 	//for (i=0; i<acfStructure->n; i++)
 	//{
@@ -488,9 +512,9 @@ int power (acfStruct *acfStructure)
 
 void allocateMemory (acfStruct *acfStructure)
 {
+	int i;
 	int n; // number of dynamic spectrum
 	int ns, nf;
-	int nchn, nsubint;
 
 	double steps = acfStructure->steps;
 	double stepf = acfStructure->stepf;
@@ -498,8 +522,6 @@ void allocateMemory (acfStruct *acfStructure)
 	n = acfStructure->n;
 	ns = acfStructure->ns;
 	nf = acfStructure->nf;
-	nchn = acfStructure->nchn;
-	nsubint = acfStructure->nsubint;
 	
 	acfStructure->s = (double *)malloc(sizeof(double)*ns);
 	acfStructure->f = (double *)malloc(sizeof(double)*nf);
@@ -510,19 +532,10 @@ void allocateMemory (acfStruct *acfStructure)
 	acfStructure->intensity = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*nf*ns);
 	
 	acfStructure->dynSpec = (double **)malloc(sizeof(double *)*nf);
-	acfStructure->dynSpecWindow = (double **)malloc(sizeof(double *)*nchn);
 
-	acfStructure->dynPlot = (float *)malloc(sizeof(float)*nsubint*nchn);
-
-	int i;
 	for (i = 0; i < nf; i++)
 	{
 		acfStructure->dynSpec[i] = (double *)malloc(sizeof(double)*ns);
-	}
-
-	for (i = 0; i < nchn; i++)
-	{
-		acfStructure->dynSpecWindow[i] = (double *)malloc(sizeof(double)*nsubint);
 	}
 
 	for (i = 0; i < ns; i++)
@@ -543,14 +556,6 @@ void deallocateMemory (acfStruct *acfStructure)
 	int nf = acfStructure->nf;
 	int nchn = acfStructure->nchn;
 	
-	free(acfStructure->s); 
-	free(acfStructure->f); 
-	free(acfStructure->acf2d);
-	free(acfStructure->psrt);
-
-	fftw_free(acfStructure->eField); 
-	fftw_free(acfStructure->intensity); 
-
 	int i;
 	for (i = 0; i < nf; i++)
 	{
