@@ -43,6 +43,7 @@ typedef struct acfStruct {
 	float *dynPlot; // dynamic spectrum for pgplot
 
 	float probability;
+	double winsize;
 } acfStruct;
 
 typedef struct noiseStruct {
@@ -83,6 +84,9 @@ typedef struct controlStruct {
 	//double fluxStep;      
 
 	int noplot;
+
+	double precision;
+	double winsize;
 }controlStruct;
 
 int idft2d (acfStruct *acfStructure);
@@ -260,6 +264,7 @@ int calculateScintScale (acfStruct *acfStructure, controlStruct *control)
 	acfStructure->t0 = control->scint_ts; // s
 	acfStructure->nchn = control->nchan;
 	acfStructure->nsubint = control->nsub;
+	acfStructure->winsize = control->winsize;
 
 	nchn = acfStructure->nchn;
 	nsubint = acfStructure->nsubint;
@@ -815,8 +820,8 @@ int windowSize (acfStruct *acfStructure, double *size)
 		//printf ("s0 ratio: %lf\n", ratio[1]);
 	}
 
-	acfStructure->size[0] = WINSIZE*size[0];
-	acfStructure->size[1] = WINSIZE*size[1];
+	acfStructure->size[0] = acfStructure->winsize*size[0];
+	acfStructure->size[1] = acfStructure->winsize*size[1];
 	//acfStructure->size[0] = size[0];
 	//acfStructure->size[1] = size[1];
 
@@ -1061,6 +1066,10 @@ int readParams(char *fname, char *dname, int n, controlStruct *control)
 			      	fscanf(fin,"%lf",&(control->cFlux0));
 			else if (strcasecmp(param,"CFLUX1")==0)
 			      	fscanf(fin,"%lf",&(control->cFlux1));
+			else if (strcasecmp(param,"PRECISION")==0)
+			      	fscanf(fin,"%lf",&(control->precision));
+			else if (strcasecmp(param,"WINSIZE")==0)
+			      	fscanf(fin,"%lf",&(control->winsize));
 		}
 	} while (endit==0);
 
@@ -1118,6 +1127,9 @@ void initialiseControl(controlStruct *control)
 	control->cFlux = 0.0;   // mJy
 	control->cFlux0 = 0.0;   // mJy
 	control->cFlux1 = 0.0;   // mJy
+
+	control->precision = 0.05;   
+	control->winsize = 2.5;   
 }
 
 //void heatMap (acfStruct *acfStructure, char *dname)
