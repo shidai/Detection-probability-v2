@@ -207,8 +207,9 @@ int calculateNDynSpec (acfStruct *acfStructure, controlStruct *control, noiseStr
 
 	int num;
 	
-	float *var;
-	var = (float*)malloc(sizeof(float)*n);
+	float var;
+	//float *var;
+	//var = (float*)malloc(sizeof(float)*n);
 
 	acfStructure->cFlux = control->cFlux; // mJy
 
@@ -223,9 +224,11 @@ int calculateNDynSpec (acfStruct *acfStructure, controlStruct *control, noiseStr
 		//printf ("Make DynSpec %d\n", i);
 		
 		// calculate the variance
-		var[i] = variance (acfStructure->dynPlot, nsub*nchan);
+		var = variance (acfStructure->dynPlot, nsub*nchan);
+		//var[i] = variance (acfStructure->dynPlot, nsub*nchan);
 
-		if (var[i] >= noiseStructure->detection)
+		if (var >= noiseStructure->detection)
+		//if (var[i] >= noiseStructure->detection)
 		{
 			num++;
 		}
@@ -233,7 +236,7 @@ int calculateNDynSpec (acfStruct *acfStructure, controlStruct *control, noiseStr
 
 	acfStructure->probability = (float)(num)/n;
 
-	free(var);
+	//free(var);
 
 	return 0;
 }
@@ -244,7 +247,6 @@ int calculateScintScale (acfStruct *acfStructure, controlStruct *control)
 	//FILE *fin;
 	long seed;
 
-	int i;
 	int nchn, nsubint;
 
 	//printf ("Starting simulating dynamic spectrum\n");
@@ -287,11 +289,11 @@ int calculateScintScale (acfStruct *acfStructure, controlStruct *control)
 	fftw_free(acfStructure->intensity); 
 
 	// allocate memory
-	acfStructure->dynSpecWindow = (double **)malloc(sizeof(double *)*nchn);
-	for (i = 0; i < nchn; i++)
-	{
-		acfStructure->dynSpecWindow[i] = (double *)malloc(sizeof(double)*nsubint);
-	}
+	//acfStructure->dynSpecWindow = (double **)malloc(sizeof(double *)*nchn);
+	//for (i = 0; i < nchn; i++)
+	//{
+	//	acfStructure->dynSpecWindow[i] = (double *)malloc(sizeof(double)*nsubint);
+	//}
 
 	acfStructure->dynPlot = (float *)malloc(sizeof(float)*nsubint*nchn);
 
@@ -554,7 +556,7 @@ void deallocateMemory (acfStruct *acfStructure)
 {
 	//int n = acfStructure->n; // number of dynamic spectrum
 	int nf = acfStructure->nf;
-	int nchn = acfStructure->nchn;
+	//int nchn = acfStructure->nchn;
 	
 	int i;
 	for (i = 0; i < nf; i++)
@@ -562,10 +564,10 @@ void deallocateMemory (acfStruct *acfStructure)
 		free(acfStructure->dynSpec[i]);
 	}
 
-	for (i = 0; i < nchn; i++)
-	{
-		free(acfStructure->dynSpecWindow[i]);
-	}
+	//for (i = 0; i < nchn; i++)
+	//{
+	//	free(acfStructure->dynSpecWindow[i]);
+	//}
 
 	free(acfStructure->dynPlot);
 }
@@ -668,6 +670,8 @@ int winDynSpec (acfStruct *acfStructure, long seed)
 	int nf0;
 	int ns0;
 
+	double dynSpecWindow;
+
 	//printf ("Simulating dynamic spectrum\n");
 	//seed = TKsetSeed();
 	//printf ("seed %ld\n",seed);
@@ -688,8 +692,10 @@ int winDynSpec (acfStruct *acfStructure, long seed)
 		{
 			for (j = 0; j < nsubint; j++)
 			{
-				acfStructure->dynSpecWindow[i][j] = acfStructure->dynSpec[i+nf0][j+ns0];
-				acfStructure->dynPlot[i*nsubint+j] = (float)(acfStructure->dynSpecWindow[i][j]*acfStructure->cFlux+acfStructure->whiteLevel*TKgaussDev(&seed));   // add in noise here
+				dynSpecWindow = acfStructure->dynSpec[i+nf0][j+ns0];
+				//acfStructure->dynSpecWindow[i][j] = acfStructure->dynSpec[i+nf0][j+ns0];
+				acfStructure->dynPlot[i*nsubint+j] = (float)(dynSpecWindow*acfStructure->cFlux+acfStructure->whiteLevel*TKgaussDev(&seed));   // add in noise here
+				//acfStructure->dynPlot[i*nsubint+j] = (float)(acfStructure->dynSpecWindow[i][j]*acfStructure->cFlux+acfStructure->whiteLevel*TKgaussDev(&seed));   // add in noise here
 				//printf ("noise rand %lf\n",TKgaussDev(&seed));
 				//acfStructure->dynPlot[i*nsubint+j] = (float)(acfStructure->dynSpecWindow[i][j]);
 				//fprintf (fp, "%.10lf  ", acfStructure->dynSpec[i][j]/sum);
@@ -711,8 +717,10 @@ int winDynSpec (acfStruct *acfStructure, long seed)
 				{
 					temp += acfStructure->dynSpec[i+nf0][j*tempt+ns0+jj];
 				}
-				acfStructure->dynSpecWindow[i][j] = temp/tempt;
-				acfStructure->dynPlot[i*nsubint+j] = (float)(acfStructure->dynSpecWindow[i][j]*acfStructure->cFlux+acfStructure->whiteLevel*TKgaussDev(&seed));   // add in noise here
+				dynSpecWindow = temp/tempt;
+				//acfStructure->dynSpecWindow[i][j] = temp/tempt;
+				acfStructure->dynPlot[i*nsubint+j] = (float)(dynSpecWindow*acfStructure->cFlux+acfStructure->whiteLevel*TKgaussDev(&seed));   // add in noise here
+				//acfStructure->dynPlot[i*nsubint+j] = (float)(acfStructure->dynSpecWindow[i][j]*acfStructure->cFlux+acfStructure->whiteLevel*TKgaussDev(&seed));   // add in noise here
 			}
 		}
 	}
@@ -731,8 +739,10 @@ int winDynSpec (acfStruct *acfStructure, long seed)
 				{
 						temp += acfStructure->dynSpec[i*tempf+nf0+ii][j+ns0];
 				}
-				acfStructure->dynSpecWindow[i][j] = temp/tempf;
-				acfStructure->dynPlot[i*nsubint+j] = (float)(acfStructure->dynSpecWindow[i][j]*acfStructure->cFlux+acfStructure->whiteLevel*TKgaussDev(&seed));   // add in noise here
+				dynSpecWindow = temp/tempf;
+				//acfStructure->dynSpecWindow[i][j] = temp/tempf;
+				acfStructure->dynPlot[i*nsubint+j] = (float)(dynSpecWindow*acfStructure->cFlux+acfStructure->whiteLevel*TKgaussDev(&seed));   // add in noise here
+				//acfStructure->dynPlot[i*nsubint+j] = (float)(acfStructure->dynSpecWindow[i][j]*acfStructure->cFlux+acfStructure->whiteLevel*TKgaussDev(&seed));   // add in noise here
 			}
 		}
 	}
@@ -754,8 +764,10 @@ int winDynSpec (acfStruct *acfStructure, long seed)
 						temp += acfStructure->dynSpec[i*tempf+nf0+ii][j*tempt+ns0+jj];
 					}
 				}
-				acfStructure->dynSpecWindow[i][j] = temp/(tempf*tempt);
-				acfStructure->dynPlot[i*nsubint+j] = (float)(acfStructure->dynSpecWindow[i][j]*acfStructure->cFlux+acfStructure->whiteLevel*TKgaussDev(&seed));   // add in noise here
+				dynSpecWindow = temp/(tempf*tempt);
+				//acfStructure->dynSpecWindow[i][j] = temp/(tempf*tempt);
+				acfStructure->dynPlot[i*nsubint+j] = (float)(dynSpecWindow*acfStructure->cFlux+acfStructure->whiteLevel*TKgaussDev(&seed));   // add in noise here
+				//acfStructure->dynPlot[i*nsubint+j] = (float)(acfStructure->dynSpecWindow[i][j]*acfStructure->cFlux+acfStructure->whiteLevel*TKgaussDev(&seed));   // add in noise here
 			}
 		}
 	}
