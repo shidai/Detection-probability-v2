@@ -170,8 +170,8 @@ int main (int argc, char* argv[])
 					//printf ("%lf %f %d\n", control.cFlux, acfStructure.probability, nMax);
 				}
 				
-				printf ("%lf %lf %lf %f %d\n", tdiff, fdiff, control.cFlux, acfStructure.probability, nMax);
-				//fprintf (fin, "%lf %lf %lf %f\n", tdiff, fdiff, control.cFlux, acfStructure.probability);
+				//printf ("%lf %lf %lf %lf %lf %f %d\n", tdiff, fdiff, control.whiteLevel, noiseStructure.detection, control.cFlux, acfStructure.probability, nMax);
+				fprintf (fin, "%lf %lf %lf %f\n", tdiff, fdiff, control.cFlux, acfStructure.probability);
 		
 				deallocateMemory (&acfStructure);
 			}
